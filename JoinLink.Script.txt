@@ -1,0 +1,26 @@
+
+<manialink version="3" name="plugin_ef8125ab:JoinLink">
+<script><!--
+main() {
+    declare Integer G_OutroEndTimer for LocalUser;
+    declare Text JoinLink = "";
+    declare Boolean LinkOpened = False;
+
+    declare netread Text Net_MapReview_Server_JoinLink for UI;
+
+    while(True) {
+        if (JoinLink != Net_MapReview_Server_JoinLink) {
+            JoinLink = Net_MapReview_Server_JoinLink;
+        }
+
+        if (JoinLink != "" && G_OutroEndTimer - 2000 < Now && !LinkOpened) {
+            log("MapReview ChangeServeur : " ^ JoinLink);
+            LinkOpened = True;
+            OpenLink(JoinLink, CMlScript::LinkType::ManialinkBrowser);
+        }
+        
+        yield;
+    }
+}
+--></script>
+</manialink>

@@ -1,0 +1,7 @@
+
+namespace inputtest
+{
+    void main()
+    {
+    }
+}

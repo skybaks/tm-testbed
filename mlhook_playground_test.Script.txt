@@ -1,0 +1,67 @@
+#RequireContext CSmMlScriptIngame
+#Const C_MLHook_Event "MLHook_Event_"
+#Const C_PageUID "ServerMapList"
+#Const C_MapListNamesEvent "_MapListNames"
+#Const C_MapListUidsEvent "_MapListUids"
+
+#Struct K_MapInfo {
+    Text mapUid;
+    Text name;
+    Text thumbnailUrl;
+    Text author;
+}
+
+Void MLHookLog(Text msg) {
+    SendCustomEvent("MLHook_LogMe_" ^ C_PageUID, [msg]);
+}
+
+main() {
+    declare Text[][] MLHook_Inbound_ServerMapList for ClientUI;
+
+    /*
+    declare netread K_MapInfo Net_MapReview_Server_CurrentMap for Teams[0];
+    declare netread K_MapInfo[] Net_MapReview_Server_MapQueue for Teams[0];
+    declare netread Text[] Net_MapReview_Server_ListPlayer for Teams[0];
+    declare netread Integer Net_MapReview_Server_MapQueue_Version for Teams[0];
+    declare netread Integer Net_MapReview_TimeLimit for Teams[0];
+
+    MLHookLog("hello from maniascript");
+    MLHookLog("Maps in Q: " ^ Net_MapReview_Server_MapQueue.count);
+    MLHookLog("Maps Q Ver:" ^ Net_MapReview_Server_MapQueue_Version);
+    //MLHookLog("" ^ Dbg_DumpDeclareForVariables(Teams[0], False));
+    if (Net_MapReview_Server_MapQueue.count > 0)
+    {
+        MLHookLog("" ^ Net_MapReview_Server_MapQueue.tojson());
+    }
+    */
+
+    declare metadata Integer[] Race_AuthorRaceWaypointTimes for Map;
+    MLHookLog(Race_AuthorRaceWaypointTimes.tojson());
+
+    /*
+    while (False)
+    {
+        yield;
+
+        while (Playground.MapList_IsInProgress)
+        {
+            yield;
+        }
+
+        foreach (Event in MLHook_Inbound_ServerMapList)
+        {
+            if (Event[0] == "SendMapListNames")
+            {
+                declare Text[] Data = Playground.MapList_Names;
+                SendCustomEvent(C_MLHook_Event ^ C_PageUID ^ C_MapListNamesEvent, Data);
+            }
+            else if (Event[0] == "SendMapListUids")
+            {
+                declare Text[] Data = Playground.MapList_MapUids;
+                SendCustomEvent(C_MLHook_Event ^ C_PageUID ^ C_MapListUidsEvent, Data);
+            }
+        }
+        MLHook_Inbound_ServerMapList.clear();
+    }
+    */
+}

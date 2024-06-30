@@ -1,0 +1,5 @@
+WriteSomeStuff: hello world
+InsideWrite: .
+InsideWrite: ...
+InsideWrite: ..
+WriteSomeStuff: hello world

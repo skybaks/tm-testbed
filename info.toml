@@ -1,0 +1,9 @@
+[meta]
+name = "Testbed"
+author = "skybaxrider"
+category = "Debug"
+version = "100000000000.0.0.0.0.1.1.1.1.1.1.1.988.0.0.2.02-dev.1"
+
+[script]
+imports = [ ]
+dependencies = [ "Camera", "VehicleState", "MLHook" ]
