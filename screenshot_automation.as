@@ -3,13 +3,20 @@ namespace screenshot_automation
 {
     void Main()
     {
-        OpenEditor("Quicksaves_EditorHelpers\\My Maps_snow_01_000003.Map.Gbx");
-        OpenMediaTrackerIntro();
-        LoadClipMT("scripttest_01.Clip.Gbx");
-        ComputeShadowsMT();
-        ShootVideo("scripttest_03");
-        CloseMediaTracker();
-        CloseEditor();
+        return;
+
+        for (uint i = 41; i < 51; i++)
+        {
+            string num = Text::Format("%02d", i);
+
+            OpenEditor("Quicksaves_EditorHelpers\\DesertBatchProject\\My Maps_desert_04_0000" + num + ".Map.Gbx");
+            OpenMediaTrackerIntro();
+            LoadClipMT("desertbatch_01.Clip.Gbx");
+            ComputeShadowsMT();
+            ShootVideo("desertbatch_" + num);
+            CloseMediaTracker();
+            CloseEditor();
+        }
     }
 
     void OpenEditor(const string&in mapfile)
