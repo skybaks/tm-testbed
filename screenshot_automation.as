@@ -3,13 +3,11 @@ namespace screenshot_automation
 {
     void Main()
     {
-        return;
-
-        OpenEditor("Quicksaves_EditorHelpers\\My Maps_snow_01_000001.Map.Gbx");
+        OpenEditor("Quicksaves_EditorHelpers\\My Maps_snow_01_000003.Map.Gbx");
         OpenMediaTrackerIntro();
         LoadClipMT("scripttest_01.Clip.Gbx");
         ComputeShadowsMT();
-        ShootVideo("scripttest_01");
+        ShootVideo("scripttest_03");
         CloseMediaTracker();
         CloseEditor();
     }
@@ -30,7 +28,13 @@ namespace screenshot_automation
     void CloseEditor()
     {
         cast<CGameCtnEditorFree>(cast<CTrackMania>(GetApp()).Editor).QuitFromScript_OnOk();
-        yield();
+
+        while (cast<CTrackMania>(GetApp()).Editor !is null)
+        {
+            yield();
+        }
+
+        print("Closed Editor");
     }
 
     void OpenMediaTrackerIntro()
@@ -57,7 +61,7 @@ namespace screenshot_automation
             sleep(1000);
         }
 
-        print("In MT");
+        print("In MT Intro");
     }
 
     void LoadClipMT(const string&in clipfile)
@@ -126,34 +130,41 @@ namespace screenshot_automation
 
     void ShootVideo(const string&in filename)
     {
+        SnapshotScreenshotsFolder();
         auto api = cast<CGameEditorMediaTrackerPluginAPI>(cast<CGameEditorMediaTracker>(cast<CTrackMania>(GetApp()).Editor).PluginAPI);
         api.ShootVideo();
-
         yield();
 
-        auto entry = GetFirstChild(GetFirstChild(GetFirstChild(GetFirstChild(GetApp().ActiveMenus[0].CurrentFrame, "FrameContent"), "FrameParameters"), "FrameVideoName"), "EntryVideoName");
+        auto entry = GetFirstChild(
+            GetFirstChild(
+                GetFirstChild(
+                    GetFirstChild(
+                        GetApp().ActiveMenus[0].CurrentFrame,
+                        "FrameContent"),
+                        "FrameParameters"),
+                        "FrameVideoName"),
+                        "EntryVideoName");
         auto parms = cast<CGameDialogShootParams>(entry.Nod);
         if (parms !is null)
         {
+            // Don't know a way to consistently set filename. Things I've tried:
+            //  * Simply setting parms.ShootName. Updates the dialog but resulting file is still VideoXX.webm
+            //  * Setting parms.ShootName, then giving textbox focus, then removing focus. No better
+            //  * Setting parms.ShootName, then closing and reopening dialog. No better
+            // It's always set when you type directly into the textbox. Must
+            // be some other state variable behind the dialog that is set by
+            // maniascript event code? or c++?
+            // In any case, the dialog ShootName can frik off. I'll just rename
+            // the file with IO::Move().
+
+            //parms.ShootName = filename;
             parms.SetQualityPreset_High();
-            parms.ShootName = filename;
-
-            return;
-
-            // ...it doesnt work...
-            // How can i reliably set the dang file name?!
-            entry.IsFocused = true;
-            sleep(1000);
-            // Now take focus away to lock in name
-            GetFirstChild(GetFirstChild(GetFirstChild(GetFirstChild(GetApp().ActiveMenus[0].CurrentFrame, "FrameContent"), "FrameButtons"), "ButtonOk"), "ButtonSelection").IsFocused = true;
-            sleep(1000);
-
-
             parms.OnOk();
-
             yield();
         }
 
+        // Detect the end of shooting by repeatedly trying to advance the
+        // timer. It wont advance until we are back in the MT editor screen
         auto startTime = api.CurrentTimer;
         while (startTime == api.CurrentTimer)
         {
@@ -163,6 +174,8 @@ namespace screenshot_automation
         api.TimeStop();
         api.CurrentTimer = startTime;
 
+        RenameNewVideo(filename);
+
         print("Done shooting: " + filename);
     }
 
@@ -170,8 +183,16 @@ namespace screenshot_automation
     {
         auto api = cast<CGameEditorMediaTrackerPluginAPI>(cast<CGameEditorMediaTracker>(cast<CTrackMania>(GetApp()).Editor).PluginAPI);
         api.Quit();
-        yield();
+
+        while (cast<CGameEditorMediaTracker>(cast<CTrackMania>(GetApp()).Editor) !is null)
+        {
+            yield();
+        }
+
+        print("Closed MediaTracker");
     }
+
+    // Utils
 
     CControlBase@ GetFirstChild(CControlBase@ control, const string&in name)
     {
@@ -189,5 +210,147 @@ namespace screenshot_automation
             }
         }
         return child;
+    }
+
+    array<string>@ g_screenshotsFiles = null;
+    void SnapshotScreenshotsFolder()
+    {
+        @g_screenshotsFiles = IO::IndexFolder(IO::FromUserGameFolder("ScreenShots"), false);
+    }
+
+    void RenameNewVideo(const string&in filename)
+    {
+        if (g_screenshotsFiles is null)
+        {
+            error("No initial snapshot to compare");
+            return;
+        }
+
+        auto newFiles = IO::IndexFolder(IO::FromUserGameFolder("ScreenShots"), false);
+        uint index = 0;
+        while (index < newFiles.Length)
+        {
+            int existingIndex = g_screenshotsFiles.Find(newFiles[index]);
+            if (existingIndex < 0)
+            {
+                index++;
+            }
+            else
+            {
+                newFiles.RemoveAt(index);
+            }
+        }
+
+        for (uint i = 0; i < newFiles.Length; i++)
+        {
+            string newName = filename;
+            if (i > 0)
+            {
+                newName += tostring(i);
+            }
+
+            string dir = GetDirectoryName(newFiles[i]);
+            string ext = GetExtension(newFiles[i]);
+
+            // Only operate on webm files just in case
+            if (ext == ".webm")
+            {
+                string newFullPath = dir + "/" + newName + ext;
+                print("Renaming file to: " + tostring(newFullPath));
+                IO::Move(newFiles[i], newFullPath);
+            }
+            else
+            {
+                print("Skipping: " + tostring(newFiles[i]));
+            }
+        }
+
+        @g_screenshotsFiles = null;
+    }
+
+    string GetDirectoryName(const string&in path)
+    {
+        string directory = "";
+        array<uint8> seps = { '/'[0], '\\'[0] };
+        int pos = path.Length - 1;
+        while (pos >= 0)
+        {
+            bool found = false;
+            for (uint i = 0; i < seps.Length; ++i)
+            {
+                if (path[pos] == seps[i])
+                {
+                    directory = path.SubStr(0, pos);
+                    found = true;
+                }
+            }
+
+            if (found)
+            {
+                break;
+            }
+            --pos;
+        }
+        return directory;
+    }
+
+    string GetFilename(const string&in path)
+    {
+        string filename = "";
+        array<uint8> seps = { '/'[0], '\\'[0] };
+        int pos = path.Length - 1;
+        while (pos >= 0)
+        {
+            bool found = false;
+            for (uint i = 0; i < seps.Length; ++i)
+            {
+                if (path[pos] == seps[i])
+                {
+                    filename = path.SubStr(pos + 1);
+                    found = true;
+                }
+            }
+
+            if (found)
+            {
+                break;
+            }
+            --pos;
+        }
+        return filename;
+    }
+
+    string GetExtension(const string&in filename)
+    {
+        string ext = "";
+        uint8 sep = "."[0];
+        int pos = filename.Length - 1;
+        while (pos >= 0)
+        {
+            if (filename[pos] == sep)
+            {
+                ext = filename.SubStr(pos);
+                break;
+            }
+            --pos;
+        }
+        return ext;
+    }
+
+    string StripExtension(const string&in filename)
+    {
+        string name = filename;
+        uint8 sep = "."[0];
+        int pos = filename.Length - 1;
+        while (pos >= 0)
+        {
+            if (filename[pos] == sep)
+            {
+                name = filename.SubStr(0, pos);
+                break;
+            }
+            --pos;
+        }
+        return name;
     }
 }
